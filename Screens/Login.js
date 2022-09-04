@@ -1,30 +1,91 @@
+import * as React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Button, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, Text, View, Button, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import 'react-native-gesture-handler'
-import * as Google from 'expo-google-app-auth';
+import { db, authy } from '../firebase'
+import * as WebBrowser from 'expo-web-browser';
+import { ResponseType } from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
+import firebase from 'firebase';
+
+
+const auth = firebase.auth();
+
+// const auth = getAuth();
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Login({navigation}) {
-  const signInWithGoogleAsync = () => {
-    navigation.navigate("Home")
+  const [loading, setLoading] = React.useState(true)
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
+    {
+      clientId: '946472432624-qa0rligmfbls3lf4dhbpf7mf9g2l7egv.apps.googleusercontent.com',
+    },
+  );
+
+  React.useEffect(() => {
+    if (response?.type === 'success') {
+      // console.log(response)
+      const { id_token } = response.params;
+      
+      const credential = firebase.auth.GoogleAuthProvider.credential(id_token);
+
+      auth.signInWithCredential(credential).then(data=>console.log(data));
+    }
+  }, [response]);
+
+
+  React.useEffect(() => {
+    authy.onAuthStateChanged(function(user){
+      if (user) {
+        console.log(user)
+        var userDetails = {
+          name: user.displayName,
+          email: user.email,
+          image: user.photoURL
+        }
+        setLoading(false)
+        navigation.replace("Home", {
+          userDetails: userDetails
+        })
+      } else {
+        setLoading(false)
+      }
+    })  
+  }, []);
+
+  const checkIfLoggedin = () => {
+    authy.onAuthStateChanged(function(user){
+      if (user) {
+        console.log(user)
+        setLoading(false)
+        navigation.replace("Home")
+      } else {
+        setLoading(false)
+      }
+    })  
   }
 
-  const { type, accessToken, user } = await Google.logInAsync(config);
-  if (type === 'success') {
-    // Then you can use the Google REST API
-    let userInfoResponse = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-  }
+  // checkIfLoggedin()
+
   return (
     <View style={styles.container}>
-      <Image
-          source={require('../assets/logoI.png')}
-          style={{ width: 300, height: 300, marginBottom: 2, marginTop: -50 }}
-          // transition={true}
-        />
-        <TouchableOpacity
+      {loading?(
+        <View>
+          <ActivityIndicator size="large" />
+        </View>
+      ):(
+        <View style={styles.container}>
+          <Image
+            source={require('../assets/logoI.png')}
+            style={{ width: 300, height: 300, marginBottom: 2, marginTop: -50 }}
+            // transition={true}
+          />
+          <TouchableOpacity
             style={styles.buttonGPlusStyle}
-            onPress={signInWithGoogleAsync}
+            onPress={() => {
+              promptAsync()
+            }}
+            disabled={!request}
             activeOpacity={0.5}
           >
             <Image
@@ -36,7 +97,9 @@ export default function Login({navigation}) {
             <View style={styles.buttonIconSeparatorStyle} />
             <Text style={styles.buttonTextStyle}>Sign in with Google</Text>
           </TouchableOpacity>
-        <StatusBar style="auto" />
+          <StatusBar style="auto" />
+        </View>
+      )}
     </View>
   );
 }
