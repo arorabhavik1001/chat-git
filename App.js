@@ -5,7 +5,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Login from './Screens/Login';
 import Home from './Screens/Home';
-
+import Chat from './Screens/Chat';
+import * as Font from "expo-font";
 
 export default function App() {
   const Stack = createNativeStackNavigator();
@@ -18,9 +19,18 @@ export default function App() {
 
   return (
     <NavigationContainer>
-       <Stack.Navigator screenOptions={globalOptions}>
+      <Stack.Navigator screenOptions={globalOptions}>
         <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen
+          name="Home"
+          options={{ headerShown: false }}
+          component={Home}
+        />
+        <Stack.Screen
+          name="Chat"
+          options={{ headerShown: false }}
+          component={Chat}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -16,11 +16,10 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function Login({navigation}) {
   const [loading, setLoading] = React.useState(true)
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
-    {
-      clientId: '946472432624-qa0rligmfbls3lf4dhbpf7mf9g2l7egv.apps.googleusercontent.com',
-    },
-  );
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    expoClientId:
+      "946472432624-qa0rligmfbls3lf4dhbpf7mf9g2l7egv.apps.googleusercontent.com",
+  });
 
   React.useEffect(() => {
     if (response?.type === 'success') {
@@ -37,16 +36,38 @@ export default function Login({navigation}) {
   React.useEffect(() => {
     authy.onAuthStateChanged(function(user){
       if (user) {
-        console.log(user)
+        const usersRef = db.collection("users").doc(user.email);
+
+        // check if user details exist in node, if not then create
+        usersRef.get()
+        .then((docSnapshot) => {
+          if (docSnapshot.exists) {
+            console.log('exists')
+            // usersRef.onSnapshot((doc) => {
+            //   // do stuff with the data
+            // });
+          } else {
+            usersRef.set({
+              name: user.displayName,
+              image: user.photoURL,
+              email: user.email,
+            }); // create the document
+
+            db.collection("chats").doc(user.email).collection("Messages").doc();
+          }
+        });
+
         var userDetails = {
           name: user.displayName,
           email: user.email,
           image: user.photoURL
         }
+
         setLoading(false)
         navigation.replace("Home", {
           userDetails: userDetails
         })
+        
       } else {
         setLoading(false)
       }
@@ -54,15 +75,17 @@ export default function Login({navigation}) {
   }, []);
 
   const checkIfLoggedin = () => {
-    authy.onAuthStateChanged(function(user){
-      if (user) {
-        console.log(user)
-        setLoading(false)
-        navigation.replace("Home")
-      } else {
-        setLoading(false)
-      }
-    })  
+    // authy.onAuthStateChanged(function(user){
+    //   if (user) {
+    //     console.log(user)
+    //     setLoading(false)
+        navigation.replace("Home", {
+          userDetails: {},
+        });
+      // } else {
+      //   setLoading(false)
+    //   }
+    // })  
   }
 
   // checkIfLoggedin()
@@ -77,13 +100,13 @@ export default function Login({navigation}) {
         <View style={styles.container}>
           <Image
             source={require('../assets/logoI.png')}
-            style={{ width: 300, height: 300, marginBottom: 2, marginTop: -50 }}
+            style={{ width: 250, height: 250, marginBottom: 15, marginTop: -50 }}
             // transition={true}
           />
           <TouchableOpacity
             style={styles.buttonGPlusStyle}
             onPress={() => {
-              promptAsync()
+              promptAsync();
             }}
             disabled={!request}
             activeOpacity={0.5}
@@ -125,8 +148,8 @@ const styles = StyleSheet.create({
   buttonImageIconStyle: {
     padding: 15,
     margin: 8,
-    height: 25,
-    width: 25,
+    height: 20,
+    width: 20,
     borderRadius: 40,
     resizeMode: "stretch",
   },
@@ -141,7 +164,7 @@ const styles = StyleSheet.create({
     // marginTop: 4,
     marginLeft: 10,
     marginRight: 10,
-    fontSize: 20,
+    fontSize: 18,
     // fontWeight: "semibold",
   },
 });
